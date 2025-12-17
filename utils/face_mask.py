@@ -14,6 +14,8 @@ from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.models import Model
 
+from loguru import logger as log
+
 
 class FaceMaskDetectionPipeline:
     def __init__(self, dataset_path=None, img_size=224):
@@ -61,10 +63,10 @@ class FaceMaskDetectionPipeline:
         self.X = np.array(self.X)
         self.y = np.array(self.y)
 
-        print("Dataset loaded")
-        print("Total images:", len(self.X))
-        print("With mask:", np.sum(self.y == 0))
-        print("Without mask:", np.sum(self.y == 1))
+        log.info("Dataset loaded")
+        log.info("Total images:", len(self.X))
+        log.info("With mask:", np.sum(self.y == 0))
+        log.info("Without mask:", np.sum(self.y == 1))
 
     # 2. HOG + SVM
     def train_hog_svm(self):
@@ -89,8 +91,8 @@ class FaceMaskDetectionPipeline:
         self.hog_svm.fit(X_train, y_train)
 
         preds = self.hog_svm.predict(X_test)
-        print("HOG + SVM results:")
-        print(classification_report(y_test, preds))
+        log.info("HOG + SVM results:")
+        log.info(classification_report(y_test, preds))
 
     # 3. LBP + RandomForest
     def train_lbp_rf(self):
@@ -111,8 +113,8 @@ class FaceMaskDetectionPipeline:
         self.lbp_rf.fit(X_train, y_train)
 
         preds = self.lbp_rf.predict(X_test)
-        print("LBP + RandomForest results:")
-        print(classification_report(y_test, preds))
+        log.info("LBP + RandomForest results:")
+        log.info(classification_report(y_test, preds))
 
     # 4. CNN
     def train_cnn(self, epochs=5):
