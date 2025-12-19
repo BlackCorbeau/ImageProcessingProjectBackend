@@ -29,11 +29,39 @@ jobs:
         with:
           python-version: '3.13'
 
-      # Runs a single command using the runners shell
-      - name: Prepearing
-        run: pip install -r dependencies.txt
+      - name: Make scripts executable
+        run: |
+          chmod +x download.sh
+          chmod +x download_mfsd.py 2>/dev/null || true
 
-      # Runs a set of commands using the runners shell
+      - name: Install dependencies
+        run: pip install -r dependencies.txt
+        
+      - name: Download dataset to root
+        run: |
+          # Проверяем наличие скрипта
+          if [ -f "download.sh" ]; then
+            echo "Запускаю download.sh..."
+            bash download.sh
+          elif [ -f "download_mfsd.py" ]; then
+            echo "Запускаю Python скрипт..."
+            python download_mfsd.py
+          else
+            echo "Скрипты не найдены, скачиваю напрямую..."
+            # Прямое скачивание если скриптов нет
+            pip install gdown
+            gdown "https://drive.google.com/uc?id=1KycQj4dik91RuBGvbhDJou7YDQEKAH2Z" -O mfsd.zip
+            unzip -o mfsd.zip
+            [ -d "MFSD" ] && mv MFSD/* ./ && rmdir MFSD
+            rm -f mfsd.zip
+          fi
+
+      # Проверяем, что датасет скачан
+      - name: Verify dataset
+        run: |
+          echo "Проверяем структуру датасета:"
+          ls -la
+
       - name: Flask app Run
         run: |
           flask run --host=0.0.0.0 --port=5000 --debug &
