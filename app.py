@@ -6,12 +6,13 @@ from utils.face_mask import FaceMaskDetectionPipeline
 UPLOAD_FOLDER = 'images'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 detection = FaceMaskDetectionPipeline()
 detection.load_dataset()
 
 app = Flask(__name__)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/api/image', methods = ['GET'])
 def alalyzeImage():
