@@ -7,7 +7,7 @@ UPLOAD_FOLDER = 'images'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-detection = FaceMaskDetectionPipeline()
+detection = FaceMaskDetectionPipeline("./Face Mask Dataset")
 detection.load_dataset()
 
 app = Flask(__name__)
