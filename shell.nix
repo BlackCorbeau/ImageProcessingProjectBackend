@@ -5,6 +5,19 @@ pkgs.mkShell {
     python3
     ruff
     pyright
+
+    # Системные библиотеки для OpenCV и NumPy
+    stdenv.cc.cc.lib
+    zlib
+    libGL
+    libglvnd
+
+    python3Packages.numpy
+    python3Packages.opencv4
+    python3Packages.flask
+    python3Packages.scikit-learn
+    python3Packages.scikit-image
+    python3Packages.joblib
   ];
 
   shellHook = ''

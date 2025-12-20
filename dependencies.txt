@@ -6,3 +6,4 @@ scikit-learn
 scikit-image
 tensorflow
 joblib
+gunicorn
