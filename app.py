@@ -60,7 +60,7 @@ app = Flask(__name__)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-@app.route('/api/image', methods = ['GET'])
+@app.route('/api/image', methods = ['POST'])
 def alalyzeImage():
     if 'file' not in request.files:
         return "Not a File", 400
