@@ -5,18 +5,22 @@ from utils.face_mask import FaceMaskDetectionPipeline
 UPLOAD_FOLDER = 'images'
 MODELS_FOLDER = 'models'
 
+# Создаем папки один раз при запуске
 for folder in [UPLOAD_FOLDER, MODELS_FOLDER]:
     os.makedirs(folder, exist_ok=True)
 
+# Глобальная переменная для хранения инициализированного детектора
 detection = None
+is_initialized = False
 
 def initialize_models():
     """Инициализация моделей - выполняется один раз"""
-    global detection
+    global detection, is_initialized
     
-    if detection is not None:
+    if is_initialized and detection is not None:
         return detection
         
+    print("Инициализация моделей детекции масок...")
     detection = FaceMaskDetectionPipeline("./Face Mask Dataset")
     detection.load_dataset()
 
@@ -40,7 +44,8 @@ def initialize_models():
     else:
         print("Обучение моделей...")
         train_models(detection)
-
+    
+    is_initialized = True
     return detection
 
 
@@ -63,10 +68,8 @@ def train_models(detection):
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Инициализируем модели один раз при запуске приложения
-@app.before_first_request
-def before_first_request():
-    """Выполняется один раз перед первым запросом"""
+# Инициализируем модели при запуске приложения
+with app.app_context():
     initialize_models()
 
 
@@ -94,7 +97,13 @@ def analyzeImage():
         return jsonify(detection.analyze_image(filepath))
 
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Проверка работоспособности сервиса"""
+    return jsonify({"status": "ok", "initialized": is_initialized})
+
+
 if __name__ == '__main__':
     # Только для локального запуска (не через gunicorn)
-    initialize_models()
-    app.run(debug=True, host='0.0.0.0')
+    print("Запуск Flask приложения...")
+    app.run(debug=True, host='0.0.0.0', port=5000)
