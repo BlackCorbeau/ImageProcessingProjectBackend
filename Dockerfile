@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r dependencies.txt
 
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
