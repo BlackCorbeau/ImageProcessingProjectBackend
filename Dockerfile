@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r dependencies.txt
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-CMD ["gunicorn", "app:app", "-b", "0.0.0.0:80", "--workers", "4"]
+CMD ["gunicorn", "app:app", "-b", "0.0.0.0:80", "--workers", "1"]
