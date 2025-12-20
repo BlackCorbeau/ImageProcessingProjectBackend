@@ -1,0 +1,9 @@
+flask==3.1.2
+loguru
+opencv-python
+numpy
+scikit-learn
+scikit-image
+tensorflow
+joblib
+gunicorn
