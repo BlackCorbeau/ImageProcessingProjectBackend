@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Face Mask Detection</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #6366f1, #2563eb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            width: 420px;
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            margin: 0 0 20px;
+            text-align: center;
+            color: #111827;
+        }
+
+        .upload {
+            border: 2px dashed #c7d2fe;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            color: #4f46e5;
+        }
+
+        .upload:hover {
+            background: #eef2ff;
+        }
+
+        .upload input {
+            display: none;
+        }
+
+        .preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            background: #4f46e5;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #4338ca;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .result {
+            padding: 12px;
+            border-radius: 10px;
+            background: #f9fafb;
+            margin-bottom: 10px;
+            border-left: 4px solid #c7d2fe;
+        }
+
+        .result.best {
+            background: #ecfdf5;
+            border-left-color: #22c55e;
+        }
+
+        .model-name {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .confidence {
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .with-mask {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .without-mask {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .error {
+            margin-top: 10px;
+            text-align: center;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Face Mask Detection</h1>
+
+    <label class="upload">
+        Нажмите, чтобы выбрать изображение
+        <input type="file" id="fileInput" accept="image/*">
+    </label>
+
+    <div class="preview" id="preview"></div>
+
+    <button id="analyzeBtn">Анализировать</button>
+
+    <div class="results" id="results"></div>
+    <div class="error" id="error"></div>
+</div>
+
+<script>
+    const fileInput = document.getElementById("fileInput");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const preview = document.getElementById("preview");
+    const results = document.getElementById("results");
+    const error = document.getElementById("error");
+
+    let file = null;
+
+    fileInput.addEventListener("change", () => {
+        file = fileInput.files[0];
+        results.innerHTML = "";
+        error.textContent = "";
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.innerHTML = `<img src="${e.target.result}">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    analyzeBtn.addEventListener("click", async () => {
+        if (!file) {
+            error.textContent = "Пожалуйста, выберите изображение";
+            return;
+        }
+
+        analyzeBtn.disabled = true;
+        analyzeBtn.textContent = "Анализ...";
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("http://localhost:5000/api/image", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Server error");
+            }
+
+            const data = await response.json();
+            renderResults(data);
+
+        } catch (e) {
+            error.textContent = "Ошибка при анализе изображения";
+        } finally {
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = "Анализировать";
+        }
+    });
+
+    function renderResults(data) {
+        results.innerHTML = "";
+
+        ["hog_svm", "lbp_rf", "cnn"].forEach(model => {
+            const r = data[model];
+            const div = document.createElement("div");
+
+            div.className = "result";
+            if (data.best_model === model) {
+                div.classList.add("best");
+            }
+
+            const predClass = r.prediction === "with_mask"
+                ? "with-mask"
+                : "without-mask";
+
+            div.innerHTML = `
+                <div class="model-name">${model.toUpperCase()}</div>
+                Предсказание:
+                <span class="${predClass}">
+                    ${r.prediction === "with_mask" ? "С маской" : "Без маски"}
+                </span>
+                <div class="confidence">
+                    Confidence: ${(r.confidence * 100).toFixed(2)}%
+                </div>
+            `;
+
+            results.appendChild(div);
+        });
+    }
+</script>
+
+</body>
+</html>
