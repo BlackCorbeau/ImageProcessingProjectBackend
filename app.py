@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-from sys import exit
 import os
 from utils.face_mask import FaceMaskDetectionPipeline
 
@@ -7,13 +6,18 @@ UPLOAD_FOLDER = 'images'
 MODELS_FOLDER = 'models'
 
 for folder in [UPLOAD_FOLDER, MODELS_FOLDER]:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    os.makedirs(folder, exist_ok=True)
 
+detection = None
 
 def initialize_models():
+    """Инициализация моделей - выполняется один раз"""
+    global detection
+    
+    if detection is not None:
+        return detection
+        
     detection = FaceMaskDetectionPipeline("./Face Mask Dataset")
-
     detection.load_dataset()
 
     model_files = [
@@ -41,6 +45,7 @@ def initialize_models():
 
 
 def train_models(detection):
+    """Обучение моделей"""
     print("Обучение HOG + SVM...")
     detection.train_hog_svm()
 
@@ -54,21 +59,42 @@ def train_models(detection):
     detection.save_models(MODELS_FOLDER)
     print("Модели успешно обучены и сохранены!")
 
-detection = initialize_models()
 
 app = Flask(__name__)
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-@app.route('/api/image', methods = ['POST'])
-def alalyzeImage():
+# Инициализируем модели один раз при запуске приложения
+@app.before_first_request
+def before_first_request():
+    """Выполняется один раз перед первым запросом"""
+    initialize_models()
+
+
+@app.route('/api/image', methods=['POST'])
+def analyzeImage():
+    """Обработка загруженного изображения"""
     if 'file' not in request.files:
         return "Not a File", 400
+    
     file = request.files['file']
+    
     if file.filename == '':
         return 'Название файла не валидно', 400
+    
     if file:
         filename = file.filename
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
+        
+        # Проверяем, инициализирован ли детектор
+        global detection
+        if detection is None:
+            detection = initialize_models()
+            
         return jsonify(detection.analyze_image(filepath))
+
+
+if __name__ == '__main__':
+    # Только для локального запуска (не через gunicorn)
+    initialize_models()
+    app.run(debug=True, host='0.0.0.0')
